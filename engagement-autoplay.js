@@ -113,7 +113,7 @@
    *  Default settings for this plugin.
    */
   defaults = {
-    namespace: 'autoplay-toggle',   // namespace for cookie/localstorage
+    namespace: 'engagement-autoplay',   // namespace for cookie/localstorage
   },
 
   /**
@@ -123,7 +123,8 @@
 
     var player = this,
         settings = extend({}, defaults, options || {}),
-        key = settings.namespace + '-autoplay';
+        key = settings.namespace + '-autoplay',
+        keyEngage = settings.namespace + 'engaged-autoplay';;
 
     // add new button to player
     var autoplayBtn = document.createElement('div');
@@ -142,7 +143,7 @@
     // retrieve autoplay from storage and highlight the correct toggle option in *all* video players
     var autoplayToggleButton = function (activate) {
 
-      // set cookie once
+      // set cookie once, this is the user preference
       activate ? storage.removeItem(key) : storage.setItem(key, 'no');
 
       // get all videos and toggle all their autoplays
@@ -170,7 +171,14 @@
     };
 
     var turnOn = !storage.getItem(key);
-    // change player behavior based on toggle
+
+    // change player behavior based on toggle AND if "off", check keyEngage and turnOn > 10 views.
+    count = parseInt(storage.getItem(keyEngage));
+    if (count > 10) {
+      turnOn = true;
+      // THINK WE NEED TO SET THE OTHER KEY HERE OR TOGGLE THE BUTTON
+    }
+
     if (player.autoplay() && !turnOn) {
       // this could be autoplaying, make sure to stop it and ensure player's autoplay is false
       player.autoplay(false);
@@ -189,6 +197,19 @@
       var toggle = !!storage.getItem(key);
       autoplayToggleButton(toggle);
     };
+
+    // Listen for each play event and increment the cookie
+    player.on('play', function() {
+      activate ? storage.removeItem(keyEngage) : storage.setItem(keyEngage, '0');
+      if (activate){
+        storage.setItem(keyEngage, '1');
+      } else {
+        count = parseInt(storage.getItem(keyEngage));
+        storage.setItem(keyEngage, count++);
+      }
+
+    });
+
 
     // return player to allow this plugin to be chained
     return player;
